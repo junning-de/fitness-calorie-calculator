@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>健身热量计算器 Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f5f5f7;
+      --card: rgba(255, 255, 255, 0.78);
+      --card-solid: #ffffff;
+      --text-main: #1d1d1f;
+      --text-sub: #6e6e73;
+      --line: rgba(0, 0, 0, 0.08);
+      --blue: #007aff;
+      --blue-soft: rgba(0, 122, 255, 0.1);
+      --green: #34c759;
+      --orange: #ff9500;
+      --red: #ff3b30;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.08);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(0, 122, 255, 0.14), transparent 34%),
+        radial-gradient(circle at 90% 10%, rgba(52, 199, 89, 0.12), transparent 28%),
+        linear-gradient(180deg, #fbfbfd 0%, var(--bg) 100%);
+      color: var(--text-main);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 28px;
+      align-items: stretch;
+      margin-bottom: 28px;
+    }
+
+    .hero-card,
+    .panel,
+    .result-card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-lg);
+    }
+
+    .hero-card {
+      padding: 42px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      right: -70px;
+      top: -70px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0, 122, 255, 0.22), rgba(52, 199, 89, 0.14));
+      filter: blur(4px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(52, 199, 89, 0.12);
+    }
+
+    h1 {
+      position: relative;
+      z-index: 1;
+      margin: 26px 0 14px;
+      font-size: clamp(38px, 5vw, 64px);
+      letter-spacing: -0.05em;
+      line-height: 1.02;
+    }
+
+    .hero-desc {
+      position: relative;
+      z-index: 1;
+      max-width: 620px;
+      margin: 0;
+      color: var(--text-sub);
+      font-size: 18px;
+      line-height: 1.8;
+    }
+
+    .hero-side {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .mini-title {
+      margin: 0 0 8px;
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .big-number {
+      margin: 0;
+      font-size: 48px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      font-weight: 800;
+    }
+
+    .small-text {
+      color: var(--text-sub);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 28px;
+    }
+
+    .panel-title {
+      margin: 0 0 20px;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+      outline: none;
+      padding: 0 15px;
+      color: var(--text-main);
+      font-size: 16px;
+      transition: 0.2s ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(0, 122, 255, 0.55);
+      box-shadow: 0 0 0 5px rgba(0, 122, 255, 0.1);
+      background: #fff;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 18px;
+      background: rgba(118, 118, 128, 0.12);
+    }
+
+    .segmented button {
+      height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .segmented button.active {
+      background: #fff;
+      color: var(--text-main);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .primary-btn {
+      width: 100%;
+      height: 52px;
+      border: 0;
+      border-radius: 18px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(0, 122, 255, 0.24);
+      transition: 0.2s ease;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 36px rgba(0, 122, 255, 0.3);
+    }
+
+    .results {
+      display: grid;
+      gap: 18px;
+    }
+
+    .result-main {
+      padding: 30px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, #1d1d1f, #34343a);
+      color: #fff;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-main::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      right: -60px;
+      bottom: -70px;
+      border-radius: 50%;
+      background: rgba(0, 122, 255, 0.45);
+      filter: blur(18px);
+    }
+
+    .result-main .mini-title,
+    .result-main .small-text {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    .kcal-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .kcal {
+      font-size: clamp(52px, 8vw, 86px);
+      line-height: 0.95;
+      font-weight: 850;
+      letter-spacing: -0.07em;
+    }
+
+    .unit {
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 700;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .result-card {
+      padding: 22px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.06);
+    }
+
+    .result-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: var(--text-sub);
+    }
+
+    .macro-value {
+      margin: 0;
+      font-size: 34px;
+      font-weight: 850;
+      letter-spacing: -0.05em;
+    }
+
+    .macro-sub {
+      margin: 8px 0 0;
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    .bars {
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      background: var(--card-solid);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.055);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .bar-item {
+      margin-top: 18px;
+    }
+
+    .bar-head {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .bar-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(118, 118, 128, 0.14);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      width: 30%;
+      transition: width 0.35s ease;
+    }
+
+    .bar-protein { background: var(--blue); }
+    .bar-carbs { background: var(--green); }
+    .bar-fat { background: var(--orange); }
+
+    .tips {
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .tips h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .tips ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-sub);
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+      margin-left: 8px;
+    }
+
+    @media (max-width: 920px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 22px, 1180px);
+        padding-top: 24px;
+      }
+
+      .hero-card,
+      .panel,
+      .hero-side {
+        padding: 22px;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .big-number {
+        font-size: 38px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow"><span class="dot"></span>Fitness Calculator Demo</div>
+        <h1>健身热量计算器</h1>
+        <p class="hero-desc">
+          输入基础身体数据，快速估算你的基础代谢、每日消耗，以及增肌/减脂目标热量，并自动分配蛋白质、碳水和脂肪。
+        </p>
+      </div>
+
+      <div class="hero-side hero-card">
+        <div>
+          <p class="mini-title">今日推荐摄入</p>
+          <p class="big-number"><span id="heroCalories">--</span> kcal</p>
+          <p class="small-text" id="heroDesc">填写数据后生成你的专属目标热量。</p>
+        </div>
+        <div class="small-text">
+          公式采用 Mifflin-St Jeor BMR 估算，适合做 Demo 和日常参考。真实饮食可根据体重变化每 1–2 周微调。
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">输入你的数据</h2>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>目标</label>
+            <div class="segmented">
+              <button class="active" type="button" data-goal="gain">增肌</button>
+              <button type="button" data-goal="cut">减脂</button>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="field">
+              <label for="gender">性别</label>
+              <select id="gender">
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="age">年龄</label>
+              <input id="age" type="number" min="12" max="90" value="22" />
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="field">
+              <label for="height">身高 cm</label>
+              <input id="height" type="number" min="120" max="230" value="175" />
+            </div>
+            <div class="field">
+              <label for="weight">体重 kg</label>
+              <input id="weight" type="number" min="30" max="200" value="70" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="activity">日常活动/训练频率</label>
+            <select id="activity">
+              <option value="1.2">久坐，几乎不运动</option>
+              <option value="1.375">轻度活动，每周训练 1–3 次</option>
+              <option value="1.55" selected>中等活动，每周训练 3–5 次</option>
+              <option value="1.725">高活动，每周训练 6–7 次</option>
+              <option value="1.9">极高活动，体力劳动或高强度训练</option>
+            </select>
+          </div>
+
+          <button class="primary-btn" type="button" id="calculateBtn">重新计算</button>
+        </div>
+      </aside>
+
+      <section class="results">
+        <div class="result-main">
+          <p class="mini-title">目标热量 <span class="tag" id="goalTag">增肌</span></p>
+          <div class="kcal-row">
+            <div class="kcal" id="targetCalories">--</div>
+            <div class="unit">kcal / 天</div>
+          </div>
+          <p class="small-text" id="targetText">根据你的目标，在每日总消耗基础上进行调整。</p>
+        </div>
+
+        <div class="metrics">
+          <div class="result-card">
+            <h3>基础代谢 BMR</h3>
+            <p class="macro-value"><span id="bmr">--</span></p>
+            <p class="macro-sub">kcal / 天</p>
+          </div>
+          <div class="result-card">
+            <h3>每日消耗 TDEE</h3>
+            <p class="macro-value"><span id="tdee">--</span></p>
+            <p class="macro-sub">kcal / 天</p>
+          </div>
+          <div class="result-card">
+            <h3>目标调整</h3>
+            <p class="macro-value"><span id="adjustment">--</span></p>
+            <p class="macro-sub">kcal / 天</p>
+          </div>
+        </div>
+
+        <div class="bars">
+          <h2 class="panel-title">三大营养素分配</h2>
+
+          <div class="bar-item">
+            <div class="bar-head">
+              <span>蛋白质</span>
+              <span><span id="protein">--</span> g</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-protein" id="proteinBar"></div></div>
+          </div>
+
+          <div class="bar-item">
+            <div class="bar-head">
+              <span>碳水</span>
+              <span><span id="carbs">--</span> g</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-carbs" id="carbsBar"></div></div>
+          </div>
+
+          <div class="bar-item">
+            <div class="bar-head">
+              <span>脂肪</span>
+              <span><span id="fat">--</span> g</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill bar-fat" id="fatBar"></div></div>
+          </div>
+        </div>
+
+        <div class="tips">
+          <h3>饮食建议</h3>
+          <ul id="tipsList">
+            <li>填写数据后，这里会生成基础饮食建议。</li>
+          </ul>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector)
+    const $$ = (selector) => document.querySelectorAll(selector)
+
+    const state = {
+      goal: 'gain'
+    }
+
+    function round(num) {
+      return Math.round(Number(num) || 0)
+    }
+
+    function getFormData() {
+      return {
+        gender: $('#gender').value,
+        age: Number($('#age').value),
+        height: Number($('#height').value),
+        weight: Number($('#weight').value),
+        activity: Number($('#activity').value),
+        goal: state.goal
+      }
+    }
+
+    function calcBMR({ gender, age, height, weight }) {
+      // Mifflin-St Jeor 公式
+      const base = 10 * weight + 6.25 * height - 5 * age
+      return gender === 'male' ? base + 5 : base - 161
+    }
+
+    function calcMacros({ targetCalories, weight, goal }) {
+      // Demo 版本：增肌蛋白 1.8g/kg；减脂蛋白 2.0g/kg；脂肪 0.8g/kg；剩余热量给碳水
+      const proteinPerKg = goal === 'gain' ? 1.8 : 2.0
+      const fatPerKg = goal === 'gain' ? 0.8 : 0.75
+
+      const protein = weight * proteinPerKg
+      const fat = weight * fatPerKg
+      const proteinCalories = protein * 4
+      const fatCalories = fat * 9
+      const carbsCalories = Math.max(targetCalories - proteinCalories - fatCalories, 0)
+      const carbs = carbsCalories / 4
+
+      return {
+        protein: round(protein),
+        carbs: round(carbs),
+        fat: round(fat)
+      }
+    }
+
+    function setBarWidth(id, value, total) {
+      const width = total > 0 ? Math.min((value / total) * 100, 100) : 0
+      $(id).style.width = width + '%'
+    }
+
+    function renderTips(goal, targetCalories, macros) {
+      const list = $('#tipsList')
+      const tips = goal === 'gain'
+        ? [
+            `建议在维持热量基础上小幅增加，先从每日 +250 kcal 开始，观察 1–2 周体重变化。`,
+            `蛋白质目标约 ${macros.protein}g/天，可以通过鸡蛋、牛奶、牛肉、鸡胸肉、豆制品或一勺蛋白粉补齐。`,
+            `碳水不要太低，训练日前后可以安排米饭、燕麦、香蕉、面食，帮助训练表现和恢复。`
+          ]
+        : [
+            `建议在维持热量基础上减少约 400 kcal，不要一下子吃太少，避免训练状态明显下滑。`,
+            `减脂期蛋白质建议稍高，约 ${macros.protein}g/天，有助于保留肌肉和提高饱腹感。`,
+            `优先控制油脂和零食，主食不要完全砍掉，训练日前后保留足够碳水。`
+          ]
+
+      list.innerHTML = tips.map((item) => `<li>${item}</li>`).join('')
+    }
+
+    function calculate() {
+      const data = getFormData()
+
+      if (!data.age || !data.height || !data.weight) {
+        alert('请先填写年龄、身高和体重')
+        return
+      }
+
+      const bmr = calcBMR(data)
+      const tdee = bmr * data.activity
+      const adjustment = data.goal === 'gain' ? 250 : -400
+      const targetCalories = tdee + adjustment
+      const macros = calcMacros({ targetCalories, weight: data.weight, goal: data.goal })
+      const macroTotal = macros.protein + macros.carbs + macros.fat
+
+      $('#bmr').textContent = round(bmr)
+      $('#tdee').textContent = round(tdee)
+      $('#adjustment').textContent = adjustment > 0 ? `+${adjustment}` : adjustment
+      $('#targetCalories').textContent = round(targetCalories)
+      $('#heroCalories').textContent = round(targetCalories)
+      $('#goalTag').textContent = data.goal === 'gain' ? '增肌' : '减脂'
+      $('#heroDesc').textContent = data.goal === 'gain'
+        ? '当前目标：轻盈增肌，先小幅热量盈余。'
+        : '当前目标：稳步减脂，保留训练表现和蛋白质摄入。'
+      $('#targetText').textContent = data.goal === 'gain'
+        ? '增肌建议不要一下子吃太多，先用温和盈余，避免脂肪增长过快。'
+        : '减脂建议保持适度缺口，避免热量过低影响训练和恢复。'
+
+      $('#protein').textContent = macros.protein
+      $('#carbs').textContent = macros.carbs
+      $('#fat').textContent = macros.fat
+
+      setBarWidth('#proteinBar', macros.protein, macroTotal)
+      setBarWidth('#carbsBar', macros.carbs, macroTotal)
+      setBarWidth('#fatBar', macros.fat, macroTotal)
+
+      renderTips(data.goal, targetCalories, macros)
+    }
+
+    $$('.segmented button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        $$('.segmented button').forEach((item) => item.classList.remove('active'))
+        btn.classList.add('active')
+        state.goal = btn.dataset.goal
+        calculate()
+      })
+    })
+
+    $('#calculateBtn').addEventListener('click', calculate)
+    ;['#gender', '#age', '#height', '#weight', '#activity'].forEach((selector) => {
+      $(selector).addEventListener('input', calculate)
+      $(selector).addEventListener('change', calculate)
+    })
+
+    calculate()
+  </script>
+</body>
+</html>
