@@ -314,7 +314,7 @@
 
     .metrics {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
     }
 
@@ -334,6 +334,14 @@
       font-size: 34px;
       font-weight: 850;
       letter-spacing: -0.05em;
+    }
+
+    .range-value {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 850;
+      letter-spacing: -0.04em;
+      line-height: 1.35;
     }
 
     .macro-sub {
@@ -381,6 +389,7 @@
     .bar-carbs { background: var(--green); }
     .bar-fat { background: var(--orange); }
 
+    .formula-note,
     .tips {
       padding: 24px;
       border-radius: var(--radius-lg);
@@ -388,10 +397,18 @@
       border: 1px solid rgba(255, 255, 255, 0.7);
     }
 
+    .formula-note h3,
     .tips h3 {
       margin: 0 0 12px;
       font-size: 20px;
       letter-spacing: -0.03em;
+    }
+
+    .formula-note p {
+      margin: 0;
+      color: var(--text-sub);
+      line-height: 1.8;
+      font-size: 15px;
     }
 
     .tips ul {
@@ -414,13 +431,15 @@
       margin-left: 8px;
     }
 
+    @media (max-width: 1100px) {
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 920px) {
       .hero,
       .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .metrics {
         grid-template-columns: 1fr;
       }
     }
@@ -437,7 +456,8 @@
         padding: 22px;
       }
 
-      .two-col {
+      .two-col,
+      .metrics {
         grid-template-columns: 1fr;
       }
 
@@ -454,7 +474,7 @@
         <div class="eyebrow"><span class="dot"></span>Fitness Calculator Demo</div>
         <h1>健身热量计算器</h1>
         <p class="hero-desc">
-          输入基础身体数据，快速估算你的基础代谢、每日消耗，以及增肌/减脂目标热量，并自动分配蛋白质、碳水和脂肪。
+          输入基础身体数据，估算基础代谢、每日消耗，并根据增肌/减脂目标强度生成热量区间与三大营养素分配。
         </p>
       </div>
 
@@ -462,10 +482,10 @@
         <div>
           <p class="mini-title">今日推荐摄入</p>
           <p class="big-number"><span id="heroCalories">--</span> kcal</p>
-          <p class="small-text" id="heroDesc">填写数据后生成你的专属目标热量。</p>
+          <p class="small-text" id="heroDesc">填写数据后生成你的目标热量。</p>
         </div>
         <div class="small-text">
-          公式采用 Mifflin-St Jeor BMR 估算，适合做 Demo 和日常参考。真实饮食可根据体重变化每 1–2 周微调。
+          公式采用 Mifflin-St Jeor BMR 估算；目标热量由 TDEE 按百分比调整，比固定 +250/-400 kcal 更适合不同体重人群。
         </div>
       </div>
     </section>
@@ -481,6 +501,15 @@
               <button class="active" type="button" data-goal="gain">增肌</button>
               <button type="button" data-goal="cut">减脂</button>
             </div>
+          </div>
+
+          <div class="field">
+            <label for="level">目标强度</label>
+            <select id="level">
+              <option value="light">温和</option>
+              <option value="standard" selected>标准</option>
+              <option value="aggressive">偏快</option>
+            </select>
           </div>
 
           <div class="two-col">
@@ -525,12 +554,12 @@
 
       <section class="results">
         <div class="result-main">
-          <p class="mini-title">目标热量 <span class="tag" id="goalTag">增肌</span></p>
+          <p class="mini-title">目标热量 <span class="tag" id="goalTag">增肌 · 标准</span></p>
           <div class="kcal-row">
             <div class="kcal" id="targetCalories">--</div>
             <div class="unit">kcal / 天</div>
           </div>
-          <p class="small-text" id="targetText">根据你的目标，在每日总消耗基础上进行调整。</p>
+          <p class="small-text" id="targetText">根据你的目标，在每日总消耗基础上按百分比调整。</p>
         </div>
 
         <div class="metrics">
@@ -545,9 +574,14 @@
             <p class="macro-sub">kcal / 天</p>
           </div>
           <div class="result-card">
+            <h3>TDEE 参考区间</h3>
+            <p class="range-value"><span id="tdeeRange">--</span></p>
+            <p class="macro-sub">估算值 ±5%</p>
+          </div>
+          <div class="result-card">
             <h3>目标调整</h3>
             <p class="macro-value"><span id="adjustment">--</span></p>
-            <p class="macro-sub">kcal / 天</p>
+            <p class="macro-sub" id="adjustmentRate">kcal / 天</p>
           </div>
         </div>
 
@@ -579,6 +613,13 @@
           </div>
         </div>
 
+        <div class="formula-note">
+          <h3>公式说明</h3>
+          <p id="formulaNote">
+            本工具使用 Mifflin-St Jeor 公式估算 BMR，再乘以活动系数得到 TDEE。目标热量为估算值，仅供健身饮食规划参考，建议结合 1–2 周体重变化和训练状态微调。
+          </p>
+        </div>
+
         <div class="tips">
           <h3>饮食建议</h3>
           <ul id="tipsList">
@@ -597,6 +638,25 @@
       goal: 'gain'
     }
 
+    const levelMap = {
+      light: '温和',
+      standard: '标准',
+      aggressive: '偏快'
+    }
+
+    const goalRates = {
+      gain: {
+        light: 0.05,
+        standard: 0.08,
+        aggressive: 0.10
+      },
+      cut: {
+        light: -0.10,
+        standard: -0.15,
+        aggressive: -0.20
+      }
+    }
+
     function round(num) {
       return Math.round(Number(num) || 0)
     }
@@ -608,20 +668,32 @@
         height: Number($('#height').value),
         weight: Number($('#weight').value),
         activity: Number($('#activity').value),
-        goal: state.goal
+        goal: state.goal,
+        level: $('#level').value
       }
     }
 
     function calcBMR({ gender, age, height, weight }) {
-      // Mifflin-St Jeor 公式
+      // Mifflin-St Jeor 公式：适合普通成年人做静息代谢粗估
       const base = 10 * weight + 6.25 * height - 5 * age
       return gender === 'male' ? base + 5 : base - 161
     }
 
+    function calcTargetCalories(tdee, goal, level) {
+      const rate = goalRates[goal][level]
+      return {
+        rate,
+        targetCalories: tdee * (1 + rate),
+        adjustment: tdee * rate
+      }
+    }
+
     function calcMacros({ targetCalories, weight, goal }) {
-      // Demo 版本：增肌蛋白 1.8g/kg；减脂蛋白 2.0g/kg；脂肪 0.8g/kg；剩余热量给碳水
+      // 优化版：先保证蛋白质，再给脂肪下限，剩余热量给碳水
+      // 增肌：蛋白质 1.8g/kg，脂肪 0.8g/kg
+      // 减脂：蛋白质 2.0g/kg，脂肪 0.7g/kg
       const proteinPerKg = goal === 'gain' ? 1.8 : 2.0
-      const fatPerKg = goal === 'gain' ? 0.8 : 0.75
+      const fatPerKg = goal === 'gain' ? 0.8 : 0.7
 
       const protein = weight * proteinPerKg
       const fat = weight * fatPerKg
@@ -633,7 +705,9 @@
       return {
         protein: round(protein),
         carbs: round(carbs),
-        fat: round(fat)
+        fat: round(fat),
+        proteinPerKg,
+        fatPerKg
       }
     }
 
@@ -642,18 +716,45 @@
       $(id).style.width = width + '%'
     }
 
-    function renderTips(goal, targetCalories, macros) {
+    function formatRate(rate) {
+      const percent = Math.abs(rate * 100)
+      return rate > 0 ? `+${percent}%` : `-${percent}%`
+    }
+
+    function getGoalText(goal) {
+      return goal === 'gain' ? '增肌' : '减脂'
+    }
+
+    function getLevelDesc(goal, level) {
+      const desc = {
+        gain: {
+          light: '适合刚开始增肌、担心脂肪增长过快的人。',
+          standard: '适合大多数规律力量训练者，热量盈余相对稳妥。',
+          aggressive: '适合偏瘦、训练量较高、希望更快提升体重的人。'
+        },
+        cut: {
+          light: '适合训练状态优先、想慢慢减脂的人。',
+          standard: '适合大多数减脂人群，缺口适中。',
+          aggressive: '适合短期减脂，但要注意训练状态和饥饿感。'
+        }
+      }
+      return desc[goal][level]
+    }
+
+    function renderTips(data, targetCalories, macros, rate) {
       const list = $('#tipsList')
-      const tips = goal === 'gain'
+      const tips = data.goal === 'gain'
         ? [
-            `建议在维持热量基础上小幅增加，先从每日 +250 kcal 开始，观察 1–2 周体重变化。`,
-            `蛋白质目标约 ${macros.protein}g/天，可以通过鸡蛋、牛奶、牛肉、鸡胸肉、豆制品或一勺蛋白粉补齐。`,
-            `碳水不要太低，训练日前后可以安排米饭、燕麦、香蕉、面食，帮助训练表现和恢复。`
+            `建议以 ${formatRate(rate)} 的热量盈余开始，目标约 ${round(targetCalories)} kcal/天；如果 1–2 周体重完全不动，可再增加 100–150 kcal。`,
+            `蛋白质目标约 ${macros.protein}g/天，约 ${macros.proteinPerKg}g/kg；可以通过鸡蛋、牛奶、牛肉、鱼虾、鸡胸肉、豆制品或一勺蛋白粉补齐。`,
+            `碳水目标约 ${macros.carbs}g/天，训练日前后可以安排米饭、燕麦、香蕉、面食，帮助训练表现和恢复。`,
+            `脂肪目标约 ${macros.fat}g/天，优先选择鸡蛋、鱼类、坚果、橄榄油等来源，别为了增肌无限加油。`
           ]
         : [
-            `建议在维持热量基础上减少约 400 kcal，不要一下子吃太少，避免训练状态明显下滑。`,
-            `减脂期蛋白质建议稍高，约 ${macros.protein}g/天，有助于保留肌肉和提高饱腹感。`,
-            `优先控制油脂和零食，主食不要完全砍掉，训练日前后保留足够碳水。`
+            `建议以 ${formatRate(rate)} 的热量缺口开始，目标约 ${round(targetCalories)} kcal/天；如果训练状态明显变差，可以把强度调到“温和”。`,
+            `减脂期蛋白质目标约 ${macros.protein}g/天，约 ${macros.proteinPerKg}g/kg，有助于保留肌肉和提高饱腹感。`,
+            `碳水目标约 ${macros.carbs}g/天，不建议完全砍主食，训练日前后保留碳水更利于坚持。`,
+            `脂肪目标约 ${macros.fat}g/天，过低可能影响饱腹感和长期坚持，优先减少零食、油炸和高油外卖。`
           ]
 
       list.innerHTML = tips.map((item) => `<li>${item}</li>`).join('')
@@ -669,23 +770,33 @@
 
       const bmr = calcBMR(data)
       const tdee = bmr * data.activity
-      const adjustment = data.goal === 'gain' ? 250 : -400
-      const targetCalories = tdee + adjustment
-      const macros = calcMacros({ targetCalories, weight: data.weight, goal: data.goal })
+      const tdeeLow = tdee * 0.95
+      const tdeeHigh = tdee * 1.05
+      const targetResult = calcTargetCalories(tdee, data.goal, data.level)
+      const macros = calcMacros({
+        targetCalories: targetResult.targetCalories,
+        weight: data.weight,
+        goal: data.goal
+      })
       const macroTotal = macros.protein + macros.carbs + macros.fat
+      const goalText = getGoalText(data.goal)
+      const levelText = levelMap[data.level]
+      const rateText = formatRate(targetResult.rate)
 
       $('#bmr').textContent = round(bmr)
       $('#tdee').textContent = round(tdee)
-      $('#adjustment').textContent = adjustment > 0 ? `+${adjustment}` : adjustment
-      $('#targetCalories').textContent = round(targetCalories)
-      $('#heroCalories').textContent = round(targetCalories)
-      $('#goalTag').textContent = data.goal === 'gain' ? '增肌' : '减脂'
-      $('#heroDesc').textContent = data.goal === 'gain'
-        ? '当前目标：轻盈增肌，先小幅热量盈余。'
-        : '当前目标：稳步减脂，保留训练表现和蛋白质摄入。'
+      $('#tdeeRange').textContent = `${round(tdeeLow)}–${round(tdeeHigh)}`
+      $('#adjustment').textContent = targetResult.adjustment > 0
+        ? `+${round(targetResult.adjustment)}`
+        : round(targetResult.adjustment)
+      $('#adjustmentRate').textContent = `${rateText} TDEE`
+      $('#targetCalories').textContent = round(targetResult.targetCalories)
+      $('#heroCalories').textContent = round(targetResult.targetCalories)
+      $('#goalTag').textContent = `${goalText} · ${levelText}`
+      $('#heroDesc').textContent = `当前目标：${levelText}${goalText}，${getLevelDesc(data.goal, data.level)}`
       $('#targetText').textContent = data.goal === 'gain'
-        ? '增肌建议不要一下子吃太多，先用温和盈余，避免脂肪增长过快。'
-        : '减脂建议保持适度缺口，避免热量过低影响训练和恢复。'
+        ? `目标热量 = TDEE × ${round((1 + targetResult.rate) * 100)}%，用小幅盈余支持训练和肌肉增长。`
+        : `目标热量 = TDEE × ${round((1 + targetResult.rate) * 100)}%，用适度缺口控制体脂，同时尽量保留训练状态。`
 
       $('#protein').textContent = macros.protein
       $('#carbs').textContent = macros.carbs
@@ -695,7 +806,7 @@
       setBarWidth('#carbsBar', macros.carbs, macroTotal)
       setBarWidth('#fatBar', macros.fat, macroTotal)
 
-      renderTips(data.goal, targetCalories, macros)
+      renderTips(data, targetResult.targetCalories, macros, targetResult.rate)
     }
 
     $$('.segmented button').forEach((btn) => {
@@ -708,7 +819,7 @@
     })
 
     $('#calculateBtn').addEventListener('click', calculate)
-    ;['#gender', '#age', '#height', '#weight', '#activity'].forEach((selector) => {
+    ;['#gender', '#age', '#height', '#weight', '#activity', '#level'].forEach((selector) => {
       $(selector).addEventListener('input', calculate)
       $(selector).addEventListener('change', calculate)
     })
